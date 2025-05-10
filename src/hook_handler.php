@@ -9,7 +9,7 @@ function resourceCreated(string $resourceName, array $requestData = []): void
     logToConsole($resourceName . ' create request:', $requestData);
 
     $data = [];
-    if (isset($requestData[$resourceName]['add'])) {
+    if (!empty($requestData[$resourceName]['add'])) {
         $requestData = $requestData[$resourceName]['add'];
         saveResourceState($resourceName, $requestData['id'], $requestData);
         $data['id'] = $requestData['id'];
@@ -26,6 +26,7 @@ function resourceCreated(string $resourceName, array $requestData = []): void
             ],
         ];
     } else {
+        logToConsole('Wrong data', ['Condition' => !empty($requestData[$resourceName]['add'])]);
         http_response_code(400);
         echo json_encode(['error' => 'Wrong data']);
         exit();
@@ -43,7 +44,7 @@ function resourceEdited(string $resourceName, array $requestData = []): void
     logToConsole($resourceName . ' edit request:', $requestData);
 
     $data = [];
-    if (isset($requestData[$resourceName]['update'])) {
+    if (!empty($requestData[$resourceName]['update'])) {
         $requestData = $requestData[$resourceName]['edit'];
         $dataDiff = getResourceStateDiff($resourceName, $requestData['id'], $requestData);
         $data['id'] = $requestData['id'];
@@ -65,6 +66,7 @@ function resourceEdited(string $resourceName, array $requestData = []): void
         ];
         saveResourceState($resourceName, $requestData['id'], $requestData);
     } else {
+        logToConsole('Wrong data', ['Condition' => !empty($requestData[$resourceName]['add'])]);
         http_response_code(400);
         echo json_encode(['error' => 'Wrong data']);
         exit();

@@ -13,7 +13,6 @@ function getToken(): array
         && isset($accessToken['refresh_token'])
         && isset($accessToken['expires'])
     ) {
-
         return $accessToken;
     } else {
         logToConsole('Token not found:');
