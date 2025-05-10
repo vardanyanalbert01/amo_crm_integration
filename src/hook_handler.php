@@ -18,7 +18,8 @@ function resourceCreated(string $resourceName, array $requestData = []): void
             . ' Created At: ' . date("Y-m-d H:i:s", $requestData['created_at']);
 
         $data['custom_fields_values'] = [
-            "field_id" => 203,
+            "field_id" => 2167797,
+            "field_name" => "Tекстовое примечание",
             "values" => [
                 [
                     "value" => $textData,
@@ -45,7 +46,7 @@ function resourceEdited(string $resourceName, array $requestData = []): void
 
     $data = [];
     if (!empty($requestData[$resourceName]['update'])) {
-        $requestData = $requestData[$resourceName]['edit'];
+        $requestData = $requestData[$resourceName]['update'];
         $dataDiff = getResourceStateDiff($resourceName, $requestData['id'], $requestData);
         $data['id'] = $requestData['id'];
         $textData = '';
@@ -57,7 +58,8 @@ function resourceEdited(string $resourceName, array $requestData = []): void
         $textData .= 'Update at: ' . date("Y-m-d H:i:s", $requestData['updated_at']);
 
         $data['custom_fields_values'] = [
-            "field_id" => 203,
+            "field_id" => 2167797,
+            "field_name" => "Tекстовое примечание",
             "values" => [
                 [
                     "value" => $textData,
@@ -66,7 +68,7 @@ function resourceEdited(string $resourceName, array $requestData = []): void
         ];
         saveResourceState($resourceName, $requestData['id'], $requestData);
     } else {
-        logToConsole('Wrong data', ['Condition' => !empty($requestData[$resourceName]['add'])]);
+        logToConsole('Wrong data', ['Condition' => !empty($requestData[$resourceName]['update'])]);
         http_response_code(400);
         echo json_encode(['error' => 'Wrong data']);
         exit();

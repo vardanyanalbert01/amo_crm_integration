@@ -70,12 +70,16 @@ try {
         } elseif (str_starts_with($requestUri, '/lead')) {
             resourceCreated('leads', $_POST);
         } else {
+            logToConsole('Route not found', [
+                'uri' => $requestUri,
+                'method' => $method,
+            ]);
             http_response_code(404);
             echo json_encode(['error' => 'Route not found']);
             exit();
         }
     } else {
-        logToConsole('Request method error', [
+        logToConsole('Method not allowed', [
             'uri' => $requestUri,
             'method' => $method,
         ]);
