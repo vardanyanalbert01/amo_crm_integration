@@ -1,0 +1,5 @@
+!.gitignore
+.env
+token_info.json
+/vendor
+/resources
