@@ -4,19 +4,43 @@ require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/logger.php';
 require_once __DIR__ . '/resource_handler.php';
 
+try {
+    if (php_sapi_name() === 'cli') {
+        $resource = $argv[1] ?? null;
+        $action = $argv[2] ?? null;
+        $stdin = file_get_contents('php://stdin');
+        $data = json_decode($stdin, true);
+
+        if ($resource && $action && $data) {
+            if ($action === 'create') {
+                logToConsole($resource . ' create request:', $data);
+                resourceCreated($resource, $data);
+            } elseif ($action === 'edit') {
+                logToConsole($resource . ' edit request:', $data);
+                resourceEdited($resource, $data);
+            } else {
+                throw new Exception("Invalid action provided");
+            }
+        } else {
+            throw new Exception("'Missing resource, action, or data");
+        }
+    }
+} catch (Exception $e) {
+    logToConsole('ERROR ', ['message' => $e->getMessage()]);
+}
+
+
 function resourceCreated(string $resourceName, array $requestData = []): void
 {
-    logToConsole($resourceName . ' create request:', $requestData);
-
     $data = [];
+    $textData = '';
     if (!empty($requestData[$resourceName]['add'])) {
         $requestData = $requestData[$resourceName]['add'];
-        saveResourceState($resourceName, $requestData['id'], $requestData);
-        $data['id'] = $requestData['id'];
         $textData = 'Name: ' . $requestData['name'] . PHP_EOL
             . ' Responsible user id: ' . $requestData['responsible_user_id'] . PHP_EOL
             . ' Created At: ' . date("Y-m-d H:i:s", $requestData['created_at']);
 
+        $data['id'] = $requestData['id'];
         $data['custom_fields_values'] = [
             "field_id" => 2167797,
             "field_name" => "Tекстовое примечание",
@@ -27,36 +51,43 @@ function resourceCreated(string $resourceName, array $requestData = []): void
             ],
         ];
     } else {
-        logToConsole('Wrong data', ['Condition' => !empty($requestData[$resourceName]['add'])]);
-        http_response_code(400);
-        echo json_encode(['error' => 'Wrong data']);
-        exit();
+        throw new Exception ('Wrong data');
     }
 
-    $out = sendEditRequest($resourceName, $data, $data['id']);
-
+    $out = sendEditRequest($resourceName, $data['id'], $data);
     logToConsole($resourceName . ' create success:', $out);
-    echo json_encode(['message' => 'Success']);
+
+    $requestData['custom_fields'][] = [
+        "id" => 2167797,
+        "name" => "Tекстовое примечание",
+        "values" => [
+            [
+                "value" => $textData,
+            ],
+        ],
+    ];
+    saveResourceState($resourceName, $requestData['id'], $requestData);
     exit();
 }
 
 function resourceEdited(string $resourceName, array $requestData = []): void
 {
-    logToConsole($resourceName . ' edit request:', $requestData);
-
     $data = [];
+    $textData = '';
     if (!empty($requestData[$resourceName]['update'])) {
         $requestData = $requestData[$resourceName]['update'];
         $dataDiff = getResourceStateDiff($resourceName, $requestData['id'], $requestData);
-        $data['id'] = $requestData['id'];
-        $textData = '';
         foreach ($dataDiff as $diff) {
             foreach ($diff as $key => $value) {
                 $textData .= $key . ': ' . $value . PHP_EOL;
             }
         }
+        if (empty($textData)) {
+            exit();
+        }
         $textData .= 'Update at: ' . date("Y-m-d H:i:s", $requestData['updated_at']);
 
+        $data['id'] = $requestData['id'];
         $data['custom_fields_values'] = [
             "field_id" => 2167797,
             "field_name" => "Tекстовое примечание",
@@ -66,22 +97,26 @@ function resourceEdited(string $resourceName, array $requestData = []): void
                 ],
             ],
         ];
-        saveResourceState($resourceName, $requestData['id'], $requestData);
     } else {
-        logToConsole('Wrong data', ['Condition' => !empty($requestData[$resourceName]['update'])]);
-        http_response_code(400);
-        echo json_encode(['error' => 'Wrong data']);
-        exit();
+        throw new Exception ('Wrong data');
     }
 
-    $out = sendEditRequest($resourceName, $data, $data['id']);
-
+    $out = sendEditRequest($resourceName, $data['id'], $data);
     logToConsole($resourceName . ' edit success:', $out);
-    echo json_encode(['message' => 'Success']);
+    $requestData['custom_fields'][] = [
+        "id" => 2167797,
+        "name" => "Tекстовое примечание",
+        "values" => [
+            [
+                "value" => $textData,
+            ],
+        ],
+    ];
+    saveResourceState($resourceName, $requestData['id'], $requestData);
     exit();
 }
 
-function sendEditRequest(string $resourceUri, array $data = [], ?int $resourceId = null)
+function sendEditRequest(string $resourceUri, ?int $resourceId = null,  array $data = [])
 {
     $token = getToken();
 

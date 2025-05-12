@@ -61,22 +61,44 @@ try {
         }
     } else if ($method === 'POST') {
         $data = getRequestData();
+        $resource = '';
+        $action = '';
+
         if (str_starts_with($requestUri, '/contact/edit')) {
-            resourceEdited('contacts', $_POST);
+            $resource = 'contacts';
+            $action = 'edit';
         } elseif (str_starts_with($requestUri, '/contact')) {
-            resourceCreated('contacts', $_POST);
+            $resource = 'contacts';
+            $action = 'create';
         } elseif (str_starts_with($requestUri, '/lead/edit')) {
-            resourceEdited('leads', $_POST);
+            $resource = 'leads';
+            $action = 'edit';
         } elseif (str_starts_with($requestUri, '/lead')) {
-            resourceCreated('leads', $_POST);
+            $resource = 'leads';
+            $action = 'create';
         } else {
-            logToConsole('Route not found', [
-                'uri' => $requestUri,
-                'method' => $method,
-            ]);
+            logToConsole('Route not found', ['uri' => $requestUri, 'method' => $method]);
             http_response_code(404);
             echo json_encode(['error' => 'Route not found']);
             exit();
+        }
+
+        $cmd = 'php ' . __DIR__ . '/hook_handler.php ' . $resource . ' ' . $action;
+
+        $descriptors = [
+            0 => ['pipe', 'r'],
+            1 => ['file', '/dev/null', 'a'],
+            2 => ['file', '/dev/null', 'a'],
+        ];
+
+        $pipes = [];
+
+        $process = proc_open($cmd, $descriptors, $pipes);
+
+        if (is_resource($process)) {
+            fwrite($pipes[0], json_encode($data));
+            fclose($pipes[0]);
+            proc_close($process);
         }
     } else {
         logToConsole('Method not allowed', [
